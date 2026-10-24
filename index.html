@@ -1,0 +1,626 @@
+<title>LDA Legal Management System</title>
+<style>
+  :root{
+    --bg:#eef1f6; --surface:#ffffff; --surface-2:#f3f6fb; --ink:#152133; --ink-soft:#54627a; --ink-faint:#8691a4;
+    --line:#d7dfea; --accent:#1a3a5c; --accent-soft:#e4ebf3; --accent-ink:#13304e;
+    --gold:#b0860f; --gold-soft:#f6edd4;
+    --warn:#c2610c; --warn-soft:#f9e6d4; --crit:#b0202f; --crit-soft:#f8dee1; --good:#1a6f5e; --good-soft:#daefe9;
+    --blue:#3f7cb3; --blue-soft:#e0eaf3; --purple:#6a4a8a;
+    --side:#0f2847; --side-2:#1c3d60; --side-ink:#d4deea; --side-faint:#8ba0b8; --side-active:#2a568a;
+    --display:"Libre Franklin",system-ui,sans-serif; --body:"Source Sans 3",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --bg:#0a0f16; --surface:#121a24; --surface-2:#18212d; --ink:#e4e9f0; --ink-soft:#9aa7b8; --ink-faint:#74808f;
+    --line:#28323f; --accent:#5a8fc4; --accent-soft:#15202e; --accent-ink:#a9c8e6;
+    --gold:#d4af37; --gold-soft:#2a2410;
+    --warn:#e0923c; --warn-soft:#2c2111; --crit:#e4727f; --crit-soft:#2c1619; --good:#4fb59a; --good-soft:#13241f;
+    --blue:#6aa3d8; --blue-soft:#13202c; --purple:#b79ad6; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0a0f16; --surface:#121a24; --surface-2:#18212d; --ink:#e4e9f0; --ink-soft:#9aa7b8; --ink-faint:#74808f;
+    --line:#28323f; --accent:#5a8fc4; --accent-soft:#15202e; --accent-ink:#a9c8e6;
+    --gold:#d4af37; --gold-soft:#2a2410;
+    --warn:#e0923c; --warn-soft:#2c2111; --crit:#e4727f; --crit-soft:#2c1619; --good:#4fb59a; --good-soft:#13241f;
+    --blue:#6aa3d8; --blue-soft:#13202c; --purple:#b79ad6; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.45}
+  h1,h2,h3,h4{font-family:var(--display);margin:0;text-wrap:balance}
+  .tnum{font-variant-numeric:tabular-nums}
+  button{font-family:inherit;cursor:pointer}
+
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+  .side{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;padding:16px 12px;position:sticky;top:0;height:100vh}
+  .logo{display:flex;align-items:center;gap:10px;padding:4px 8px 14px}
+  .logo .seal{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--side);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:13px;flex:none}
+  .logo h1{font-size:15px;font-weight:700;color:#fff;line-height:1.15}
+  .logo p{margin:2px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--side-faint)}
+  nav{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .nav{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;color:var(--side-ink);background:none;border:none;font-size:13.5px;font-weight:600;text-align:left;width:100%}
+  .nav .ic{width:18px;text-align:center;font-size:15px;opacity:.9}
+  .nav .ct{margin-left:auto;font-size:11px;background:rgba(255,255,255,.14);padding:1px 7px;border-radius:999px;font-variant-numeric:tabular-nums}
+  .nav:hover{background:var(--side-2)}
+  .nav.on{background:var(--side-active);color:#fff;box-shadow:inset 3px 0 0 var(--gold)}
+  .side .me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid rgba(255,255,255,.12)}
+  .side .me .av{width:32px;height:32px;border-radius:50%;background:var(--side-2);display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex:none}
+  .side .me b{font-size:12.5px;color:#fff;display:block}
+  .side .me span{font-size:10.5px;color:var(--side-faint)}
+
+  .main{min-width:0;display:flex;flex-direction:column}
+  .top{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:12px 22px}
+  .top h2{font-size:17px;font-weight:700}
+  .search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--ink-faint);min-width:180px}
+  .bell{width:34px;height:34px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;position:relative}
+  .bell::after{content:"3";position:absolute;top:-5px;right:-5px;background:var(--crit);color:#fff;font-size:9px;font-weight:700;width:15px;height:15px;border-radius:50%;display:grid;place-items:center}
+  .content{padding:22px;max-width:1120px;width:100%}
+
+  .screen{display:none}
+  .screen.active{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:.4}to{opacity:1}}
+
+  .pagehd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .pagehd p{font-size:12.5px;color:var(--ink-soft);margin:0}
+
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:18px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+  .kpi .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft)}
+  .kpi .val{font-family:var(--display);font-weight:700;font-size:25px;margin-top:6px;line-height:1}
+  .kpi .sub{font-size:11px;color:var(--ink-soft);margin-top:4px}
+  .kpi.crit{border-left:4px solid var(--crit)} .kpi.crit .val{color:var(--crit)}
+  .kpi.warn{border-left:4px solid var(--warn)} .kpi.warn .val{color:var(--warn)}
+  .kpi.good{border-left:4px solid var(--good)} .kpi.good .val{color:var(--good)}
+  .kpi.gold{border-left:4px solid var(--gold)}
+
+  .row{display:grid;gap:16px;margin-bottom:16px}
+  .row.c2{grid-template-columns:1fr 1fr}
+  .row.c32{grid-template-columns:1.5fr 1fr}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+  .card h3{font-size:14.5px;font-weight:700;margin-bottom:3px}
+  .card .cap{font-size:12px;color:var(--ink-soft);margin-bottom:12px}
+
+  .statusbar{display:flex;height:24px;border-radius:7px;overflow:hidden;margin:4px 0 11px}
+  .statusbar>span{display:block}
+  .leg{display:flex;flex-wrap:wrap;gap:7px 14px;font-size:12px}
+  .leg div{display:flex;align-items:center;gap:6px}
+  .sw{width:10px;height:10px;border-radius:3px;flex:none}
+
+  .pending{display:flex;flex-direction:column;gap:7px}
+  .prow{display:grid;grid-template-columns:18px 1fr 52px 40px;gap:8px;align-items:center;font-size:12.5px}
+  .prow .rk{color:var(--ink-faint);text-align:right}
+  .prow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .prow .n{text-align:right;font-variant-numeric:tabular-nums}
+  .prow .pct{text-align:right;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .prow .mini{grid-column:1/-1;height:6px;background:var(--surface-2);border-radius:4px;overflow:hidden;margin-top:-3px}
+  .prow .mini>span{display:block;height:100%;background:var(--accent)}
+
+  .bars{display:flex;flex-direction:column;gap:8px}
+  .bar{display:grid;grid-template-columns:120px 1fr 46px;gap:9px;align-items:center;font-size:12.5px}
+  .bar .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .track{height:14px;background:var(--surface-2);border-radius:5px;overflow:hidden}
+  .bar .fill{height:100%;background:var(--gold);border-radius:5px}
+  .bar .n{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);font-weight:600;text-align:left;padding:9px 10px;border-bottom:2px solid var(--line)}
+  tbody td{padding:9px 10px;border-bottom:1px solid var(--line)}
+  tbody tr.clk{cursor:pointer}
+  tbody tr.clk:hover{background:var(--surface-2)}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+  .chip{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .chip.reply{background:var(--crit-soft);color:var(--crit)}
+  .chip.comply{background:var(--warn-soft);color:var(--warn)}
+  .chip.filed{background:var(--blue-soft);color:var(--blue)}
+  .chip.hearing{background:var(--accent-soft);color:var(--accent-ink)}
+  .chip.decided{background:var(--good-soft);color:var(--good)}
+  .chip.over{background:var(--crit);color:#fff}
+
+  .filters{display:flex;flex-wrap:wrap;gap:7px}
+  .fchip{font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft)}
+  .fchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  .acts{display:flex;flex-direction:column;gap:9px}
+  .act{display:grid;grid-template-columns:4px 1fr auto;gap:13px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:12px 15px}
+  .act .stripe{width:4px;height:100%;border-radius:4px;background:var(--accent);min-height:40px}
+  .act.over .stripe,.act.urgent .stripe{background:var(--crit)} .act.soon .stripe{background:var(--warn)}
+  .act .t{font-size:14px;font-weight:600;font-family:var(--display)}
+  .act .m{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  .act .due{text-align:right;font-size:12px;white-space:nowrap}
+  .act .due b{font-family:var(--display);display:block;font-size:13px}
+  .btn{font-size:12.5px;font-weight:600;color:#fff;background:var(--accent);border:none;border-radius:7px;padding:8px 14px}
+  .btn.ghost{background:none;border:1px solid var(--line);color:var(--accent-ink)}
+  .btn.gold{background:var(--gold);color:#1b1402}
+
+  .daygrp{margin-bottom:16px}
+  .dayhd{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:13.5px;margin:0 0 8px}
+  .dayhd .dd{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--line);border-radius:7px;padding:3px 9px;font-size:12px}
+  .hcard{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:7px;cursor:pointer}
+  .hcard:hover{background:var(--surface-2)}
+  .hcard .ht{font-size:13.5px;font-weight:600}
+  .hcard .hm{font-size:12px;color:var(--ink-soft);margin-top:2px}
+
+  .back{font-size:12.5px;font-weight:600;color:var(--accent-ink);background:none;border:none;padding:0;margin-bottom:12px}
+  .dhead{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .dhead h3{font-size:18px;font-weight:700}
+  .dhead .meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px;font-size:12.5px;color:var(--ink-soft)}
+  .dhead .meta b{color:var(--ink)}
+  .stepper{display:flex;flex-wrap:wrap;gap:4px;margin-top:16px}
+  .step{flex:1;min-width:84px;text-align:center;font-size:11px;color:var(--ink-faint);position:relative;padding-top:20px}
+  .step::before{content:"";position:absolute;top:6px;left:50%;width:100%;height:2px;background:var(--line)}
+  .step:first-child::before{display:none}
+  .step .dot{position:absolute;top:1px;left:calc(50% - 6px);width:12px;height:12px;border-radius:50%;background:var(--line);border:2px solid var(--surface)}
+  .step.done{color:var(--accent-ink)} .step.done .dot{background:var(--accent)} .step.done::before{background:var(--accent)}
+  .step.cur{color:var(--crit);font-weight:700} .step.cur .dot{background:var(--crit)}
+
+  .dtabs{display:flex;gap:3px;border-bottom:2px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+  .dtab{font-size:13px;font-weight:600;color:var(--ink-soft);padding:8px 13px;border-bottom:2px solid transparent;margin-bottom:-2px;background:none;border-top:none;border-left:none;border-right:none}
+  .dtab.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+  .dpane{display:none} .dpane.on{display:block}
+  .doc{display:flex;align-items:center;gap:10px;font-size:13px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .doc .fi{width:26px;height:26px;border-radius:6px;background:var(--crit-soft);color:var(--crit);display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+
+  .rptgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .rpt{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:15px;display:flex;flex-direction:column}
+  .rpt h4{font-size:13.5px;font-weight:700}
+  .rpt p{font-size:11.5px;color:var(--ink-soft);margin:5px 0 12px;flex:1}
+  .rpt .rb{display:flex;gap:7px}
+  .trail{list-style:none;margin:0;padding:0}
+  .trail li{position:relative;padding:0 0 15px 22px;font-size:12.5px}
+  .trail li::before{content:"";position:absolute;left:3px;top:3px;width:9px;height:9px;border-radius:50%;background:var(--accent);z-index:1}
+  .trail li.now::before{background:var(--crit)}
+  .trail li::after{content:"";position:absolute;left:7px;top:11px;bottom:-2px;width:1px;background:var(--line)}
+  .trail li:last-child::after{display:none}
+  .trail b{font-family:var(--display)}
+  .trail .wh{color:var(--ink-soft)}
+
+  .overlay{position:fixed;inset:0;background:rgba(10,20,35,.55);display:none;align-items:flex-start;justify-content:center;padding:36px 16px;z-index:50;overflow:auto}
+  .overlay.on{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;width:100%;max-width:540px}
+  .modal .mh{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .modal .mh h3{font-size:16px}
+  .modal .xb{background:none;border:none;font-size:22px;color:var(--ink-soft);line-height:1}
+  .modal .mb{padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld.full{grid-column:1/-1}
+  .fld label{font-size:11.5px;font-weight:600;color:var(--ink-soft)}
+  .fld input,.fld select{font-family:inherit;font-size:13.5px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink)}
+  .modal .mf{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:9px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--good);color:#fff;padding:11px 20px;border-radius:9px;font-size:13.5px;font-weight:600;opacity:0;transition:.3s;z-index:60;pointer-events:none}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:880px){
+    .app{grid-template-columns:1fr}
+    .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px}
+    .logo{padding:4px 8px;width:100%}
+    nav{flex-direction:row;flex-wrap:wrap;margin:0}
+    .nav{width:auto} .nav .ct{display:none} .side .me{display:none}
+    .kpis{grid-template-columns:repeat(2,1fr)} .row.c2,.row.c32{grid-template-columns:1fr}
+    .rptgrid{grid-template-columns:1fr} .modal .mb{grid-template-columns:1fr}
+    .content{padding:16px}
+  }
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="logo">
+      <div class="seal">LDA</div>
+      <div><h1>Legal Management</h1><p>Lucknow Dev. Authority</p></div>
+    </div>
+    <nav>
+      <button class="nav on" data-s="dash"><span class="ic">&#9632;</span> Dashboard</button>
+      <button class="nav" data-s="mine"><span class="ic">&#10003;</span> My Pending <span class="ct">5</span></button>
+      <button class="nav" data-s="cases"><span class="ic">&#9636;</span> All Cases <span class="ct">23,331</span></button>
+      <button class="nav" data-s="hearings"><span class="ic">&#128197;</span> Hearings</button>
+      <button class="nav" data-s="files"><span class="ic">&#128194;</span> File Movement</button>
+      <button class="nav" data-s="pwc"><span class="ic">&#9997;</span> Para-wise Comments <span class="ct">7</span></button>
+      <button class="nav" data-s="compliance"><span class="ic">&#9888;</span> Compliance <span class="ct">1,333</span></button>
+      <button class="nav" data-s="advocates"><span class="ic">&#9878;</span> Advocates</button>
+      <button class="nav" data-s="reports"><span class="ic">&#9636;</span> Reports</button>
+    </nav>
+    <div class="me">
+      <div class="av">AK</div>
+      <div><b>Aditya Kamboj</b><span>PMC Cell &middot; Officer</span></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <h2 id="ttl">Dashboard</h2>
+      <div class="search">&#128269; Search case no, party, advocate&hellip;</div>
+      <div class="bell">&#128276;</div>
+    </div>
+    <div class="content">
+
+      <section class="screen active" id="dash">
+        <div class="kpis">
+          <div class="kpi crit"><div class="lbl">Reply Pending</div><div class="val tnum">3,647</div><div class="sub">Counter / statement not filed</div></div>
+          <div class="kpi warn"><div class="lbl">Compliance Pending</div><div class="val tnum">1,333</div><div class="sub">Court orders to comply</div></div>
+          <div class="kpi warn"><div class="lbl">Unassigned</div><div class="val tnum">275</div><div class="sub">No dealing section</div></div>
+          <div class="kpi good"><div class="lbl">Decided</div><div class="val tnum">14,183</div><div class="sub">Disposed by courts</div></div>
+          <div class="kpi gold"><div class="lbl">Total Cases</div><div class="val tnum">23,331</div><div class="sub">Registered</div></div>
+        </div>
+        <div class="row c2">
+          <div class="card">
+            <h3>Case status distribution</h3>
+            <p class="cap">All 23,331 registered cases by stage.</p>
+            <div class="statusbar" id="statusBar"></div>
+            <div class="leg" id="statusLeg"></div>
+          </div>
+          <div class="card">
+            <h3>Compliance pending &mdash; by court</h3>
+            <p class="cap">Court orders awaiting LDA action.</p>
+            <table><thead><tr><th>Court</th><th class="n">Pending</th></tr></thead><tbody>
+              <tr><td>High Court</td><td class="n">1,268</td></tr>
+              <tr><td>High Court (Criminal)</td><td class="n">65</td></tr>
+              <tr><td><b>Total</b></td><td class="n"><b>1,333</b></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div class="row c32">
+          <div class="card">
+            <h3>Reply pending &mdash; by dealing section</h3>
+            <p class="cap">Where LDA&rsquo;s statement / counter is not filed. All sections with pending work.</p>
+            <div class="pending" id="sectRows" style="max-height:300px;overflow:auto"></div>
+          </div>
+          <div class="card">
+            <h3>Reply pending &mdash; by case type</h3>
+            <p class="cap">Top categories of 3,647.</p>
+            <div class="bars" id="typeRows"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="mine">
+        <div class="filters" style="margin-bottom:14px">
+          <button class="fchip on">All (5)</button><button class="fchip">Overdue (1)</button>
+          <button class="fchip">This week (3)</button><button class="fchip">Compliance (1)</button>
+        </div>
+        <div class="acts" id="actList"></div>
+      </section>
+
+      <section class="screen" id="cases">
+        <div class="pagehd">
+          <div class="filters">
+            <button class="fchip on" data-f="all">All</button><button class="fchip" data-f="reply">Reply pending</button>
+            <button class="fchip" data-f="hearing">In hearing</button><button class="fchip" data-f="comply">Compliance</button>
+            <button class="fchip" data-f="decided">Decided</button>
+          </div>
+          <button class="btn gold" onclick="openForm()">&#43; Register Case</button>
+        </div>
+        <div class="card" style="padding:4px 4px">
+          <table>
+            <thead><tr><th>Case No</th><th>Title</th><th>Court</th><th>Type</th><th>Section</th><th>Officer</th><th>Stage</th><th>Next hearing</th></tr></thead>
+            <tbody id="caseRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="screen" id="hearings">
+        <div id="hearList"></div>
+      </section>
+
+      <section class="screen" id="files">
+        <div class="row c32">
+          <div class="card">
+            <h3>File movement &mdash; live positions</h3>
+            <p class="cap">Where each case file currently sits, who holds it, and for how long.</p>
+            <div style="padding:2px 2px"><table>
+              <thead><tr><th>Case</th><th>Currently with</th><th>Section</th><th>Stage</th><th class="n">Held for</th></tr></thead>
+              <tbody id="fileRows"></tbody>
+            </table></div>
+          </div>
+          <div class="card">
+            <h3>Movement trail</h3>
+            <p class="cap">RISHITA DEVELOPER VS LDA &middot; HC/10202/2008</p>
+            <ul class="trail">
+              <li class="now"><b>Legal Cell &rarr; R.K. Verma</b><div class="wh">Drafting counter &middot; since 12 Sep 2026 (42 days)</div></li>
+              <li><b>Property Section</b><div class="wh">Para-wise comments prepared &middot; 02&ndash;11 Sep 2026</div></li>
+              <li><b>Legal Cell (inward)</b><div class="wh">Notice received, case registered &middot; 28 Aug 2026</div></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="pwc">
+        <div class="filters" style="margin-bottom:14px">
+          <button class="fchip on">All (7)</button><button class="fchip">To prepare (3)</button>
+          <button class="fchip">Under review (2)</button><button class="fchip">Finalised (2)</button>
+        </div>
+        <div class="card" style="padding:4px 4px"><table>
+          <thead><tr><th>Case</th><th>Court</th><th>Counter due</th><th class="n">Paras</th><th>Prepared by</th><th>Status</th></tr></thead>
+          <tbody id="pwcRows"></tbody>
+        </table></div>
+      </section>
+
+      <section class="screen" id="compliance">
+        <div class="card" style="padding:4px 4px">
+          <table>
+            <thead><tr><th>Court order</th><th>Case</th><th>Section</th><th>Due</th><th>Status</th></tr></thead>
+            <tbody id="compRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="screen" id="advocates">
+        <div class="card" style="padding:4px 4px">
+          <table>
+            <thead><tr><th>Advocate</th><th class="n">Active cases</th><th class="n">Reply pending</th><th class="n">Decided</th><th class="n">Fees paid (FY)</th></tr></thead>
+            <tbody id="advRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="screen" id="reports">
+        <p class="cap" style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px">Every report in one place &mdash; open on screen or export to Excel / PDF.</p>
+        <div class="rptgrid" id="rptGrid"></div>
+      </section>
+
+      <section class="screen" id="detail">
+        <button class="back" onclick="show('cases')">&#8592; Back to cases</button>
+        <div class="dhead">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+            <div>
+              <h3 id="dTitle">RISHITA DEVELOPER PVT. LTD. VS. L.D.A.</h3>
+              <div class="meta">
+                <span>Case No <b id="dNo">HC/10202/2008</b></span>
+                <span>Court <b id="dCourt">High Court</b></span>
+                <span>Type <b id="dType">Misc. Bench</b></span>
+                <span>LDA is <b>Respondent</b></span>
+                <span>Section <b id="dSect">Property</b></span>
+                <span>Officer <b id="dOff">R.K. Verma</b></span>
+                <span>Advocate <b id="dAdv">Siddharth Vikram Asthana</b></span>
+              </div>
+            </div>
+            <span class="chip reply" style="font-size:12px;padding:5px 12px">Reply pending</span>
+          </div>
+          <div class="stepper">
+            <div class="step done"><span class="dot"></span>Registered</div>
+            <div class="step done"><span class="dot"></span>Assigned</div>
+            <div class="step cur"><span class="dot"></span>Reply drafting</div>
+            <div class="step"><span class="dot"></span>Reply filed</div>
+            <div class="step"><span class="dot"></span>Hearing</div>
+            <div class="step"><span class="dot"></span>Decided</div>
+            <div class="step"><span class="dot"></span>Compliance</div>
+          </div>
+        </div>
+        <div class="dtabs">
+          <button class="dtab on" data-p="ov">Overview</button>
+          <button class="dtab" data-p="ac">Actions</button>
+          <button class="dtab" data-p="pw">Para-wise comments</button>
+          <button class="dtab" data-p="he">Hearings</button>
+          <button class="dtab" data-p="dc">Documents</button>
+          <button class="dtab" data-p="fm">File movement</button>
+        </div>
+        <div class="dpane on" id="p-ov">
+          <div class="row c2">
+            <div class="card"><h3>Matter</h3><p class="cap" style="margin:0">Challenge to LDA action regarding commercial plot CP-1, Vikas Khand. LDA is respondent; counter-affidavit to be filed. Allotment dispute linked to scheme <b>Gomti Nagar</b>.</p></div>
+            <div class="card"><h3>Key dates</h3>
+              <table><tbody>
+                <tr><td>Filed</td><td class="n">2008</td></tr>
+                <tr><td>Assigned to section</td><td class="n">12 Sep 2026</td></tr>
+                <tr><td>Counter due</td><td class="n" style="color:var(--crit);font-weight:600">28 Oct 2026</td></tr>
+                <tr><td>Next hearing</td><td class="n">28 Oct 2026</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+        <div class="dpane" id="p-ac">
+          <div class="acts">
+            <div class="act soon"><div class="stripe"></div><div><div class="t">Submit para-wise comments to advocate</div><div class="m">Required before counter can be filed</div></div><div class="due"><b>28 Oct 2026</b>in 4 days</div></div>
+            <div class="act"><div class="stripe"></div><div><div class="t">File counter-affidavit in High Court</div><div class="m">Advocate: Siddharth Vikram Asthana</div></div><div class="due"><b>28 Oct 2026</b>in 4 days</div></div>
+          </div>
+        </div>
+        <div class="dpane" id="p-pw">
+          <div class="card" style="padding:4px 4px"><table>
+            <thead><tr><th class="n">Para</th><th>Petitioner&rsquo;s averment</th><th>LDA&rsquo;s comment</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td class="n">1&ndash;3</td><td>Plot CP-1 allotment details</td><td>Admitted as per record</td><td><span class="chip decided">Finalised</span></td></tr>
+              <tr><td class="n">4&ndash;7</td><td>Alleged arbitrary cancellation</td><td>Denied; cancellation per terms</td><td><span class="chip filed">Under review</span></td></tr>
+              <tr><td class="n">8&ndash;11</td><td>Claim for possession</td><td>To be drafted by Property section</td><td><span class="chip reply">To prepare</span></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div class="dpane" id="p-he">
+          <div class="card" style="padding:4px 4px"><table>
+            <thead><tr><th>Date</th><th>Purpose</th><th>Outcome</th><th>Next date</th></tr></thead>
+            <tbody>
+              <tr><td>12 Aug 2026</td><td>Admission</td><td>Interim order; counter sought</td><td>28 Oct 2026</td></tr>
+              <tr><td>04 Mar 2026</td><td>Listing</td><td>Adjourned</td><td>12 Aug 2026</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div class="dpane" id="p-dc">
+          <div class="card">
+            <div class="doc"><span class="fi">PDF</span>Writ petition &mdash; filed copy.pdf</div>
+            <div class="doc"><span class="fi">PDF</span>Interim order 12-Aug-2026.pdf</div>
+            <div class="doc"><span class="fi">PDF</span>Allotment file CP-1 Vikas Khand.pdf</div>
+          </div>
+        </div>
+        <div class="dpane" id="p-fm">
+          <ul class="trail">
+            <li class="now"><b>Legal Cell &rarr; R.K. Verma</b><div class="wh">Drafting counter &middot; since 12 Sep 2026 (42 days)</div></li>
+            <li><b>Property Section</b><div class="wh">Para-wise comments prepared &middot; 02&ndash;11 Sep 2026</div></li>
+            <li><b>Legal Cell (inward)</b><div class="wh">Notice received, case registered &middot; 28 Aug 2026</div></li>
+          </ul>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <div class="overlay" id="formOv">
+    <div class="modal">
+      <div class="mh"><h3>Register New Case</h3><button class="xb" onclick="closeForm()">&times;</button></div>
+      <div class="mb">
+        <div class="fld full"><label>Case title / parties</label><input id="f_title" placeholder="e.g. ABC vs. L.D.A."></div>
+        <div class="fld"><label>Case number</label><input id="f_no" placeholder="e.g. HC/12345/2026"></div>
+        <div class="fld"><label>Court</label><select id="f_court"><option>High Court</option><option>High Court (Criminal)</option><option>Civil Court</option><option>District Forum</option><option>Supreme Court</option><option>Lucknow Bench</option></select></div>
+        <div class="fld"><label>Case type</label><select id="f_type"><option>Writ C</option><option>Writ A</option><option>Land Acquisition</option><option>Misc. Bench</option><option>Contempt</option><option>Special Leave</option><option>Others</option></select></div>
+        <div class="fld"><label>Dealing section</label><select id="f_sect"><option>RBO</option><option>Arjan</option><option>Property</option><option>Engineering</option><option>Nazul</option><option>Commercial</option><option>Establishment</option></select></div>
+        <div class="fld"><label>Dealing officer</label><input id="f_off" placeholder="Officer name"></div>
+        <div class="fld"><label>Advocate</label><select id="f_adv"><option>Siddharth Vikram Asthana</option><option>Vijay Pratap Singh Chauhan</option><option>R. N. Trivedi</option><option>Anjali Srivastava</option></select></div>
+        <div class="fld"><label>Current stage</label><select id="f_stage"><option value="reply|Reply pending">Reply pending</option><option value="hearing|In hearing">In hearing</option><option value="filed|Statement filed">Statement filed</option><option value="comply|Compliance">Compliance</option><option value="decided|Decided">Decided</option></select></div>
+        <div class="fld full"><label>Next hearing date</label><input id="f_next" type="date"></div>
+      </div>
+      <div class="mf"><button class="btn ghost" onclick="closeForm()">Cancel</button><button class="btn" onclick="saveCase()">Register case</button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+  var titles = {dash:"Dashboard",mine:"My Pending Actions",cases:"All Cases",hearings:"Hearings & Cause List",files:"File Movement Tracking",pwc:"Para-wise Comments (PWC)",compliance:"Compliance Tracker",advocates:"Advocates & Legal Spend",reports:"Dashboards & Reports",detail:"Case Detail"};
+  function show(id){
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active',s.id===id)});
+    document.querySelectorAll('.nav').forEach(function(n){n.classList.toggle('on',n.dataset.s===id)});
+    document.getElementById('ttl').textContent = titles[id]||"";
+    window.scrollTo(0,0);
+  }
+  document.querySelectorAll('.nav').forEach(function(n){n.onclick=function(){show(n.dataset.s)}});
+
+  var status=[["Decided",14183,"var(--good)"],["Statement Filed",4838,"var(--blue)"],["Reply Pending",3647,"var(--crit)"],["Unassigned",275,"var(--warn)"],["Admitted",123,"var(--purple)"]];
+  var stot=status.reduce(function(s,r){return s+r[1]},0);
+  document.getElementById('statusBar').innerHTML=status.map(function(r){return '<span style="width:'+(r[1]/stot*100)+'%;background:'+r[2]+'"></span>'}).join('');
+  document.getElementById('statusLeg').innerHTML=status.map(function(r){return '<div><span class="sw" style="background:'+r[2]+'"></span>'+r[0]+' &middot; <b class="tnum">'+r[1].toLocaleString('en-IN')+'</b></div>'}).join('');
+
+  var sections=[["RBO (R&O)",2071],["Arjan (Acquisition)",468],["Property",323],["Engineering",243],["Nazul",178],["Trust",73],["Planning",41],["Urban Ceiling",39],["Commercial",36],["Miscellaneous",35],["All Flats",33],["Establishment",19],["Hightech Township",17],["Bulk Sale",13],["RWA Cell",9],["Udhyan",6],["Rent",4],["Green Corridor",3]];
+  var stotal=sections.reduce(function(s,r){return s+r[1]},0),smax=sections[0][1];
+  document.getElementById('sectRows').innerHTML=sections.map(function(r,i){var pct=(r[1]/stotal*100);
+    return '<div class="prow"><span class="rk">'+(i+1)+'</span><span class="nm">'+r[0]+'</span><span class="n">'+r[1].toLocaleString('en-IN')+'</span><span class="pct">'+pct.toFixed(pct<1?1:0)+'%</span><span class="mini"><span style="width:'+Math.round(r[1]/smax*100)+'%"></span></span></div>';}).join('');
+
+  var types=[["Others",1080],["Writ C",282],["Land Acquisition",166],["Misc. Bench",80],["Punarikshan",45],["M.B / P.I.L",39],["Contempt",23],["Writ A",15],["Art. 227",11],["Special Leave",9]];
+  var tmax=types[0][1];
+  document.getElementById('typeRows').innerHTML=types.map(function(r){return '<div class="bar"><span class="name" title="'+r[0]+'">'+r[0]+'</span><span class="track"><span class="fill" style="width:'+Math.round(r[1]/tmax*100)+'%"></span></span><span class="n">'+r[1].toLocaleString('en-IN')+'</span></div>';}).join('');
+
+  var acts=[
+    ["urgent","Personal appearance in court","High Court (Criminal), Case 457","26 Oct 2026","in 2 days"],
+    ["over","File counter-affidavit","TAJ AHMAD VS LDA &mdash; High Court &mdash; Land Acquisition","19 Oct 2026","5 days overdue"],
+    ["soon","Submit para-wise comments","RISHITA DEVELOPER PVT. LTD. VS LDA &mdash; High Court","28 Oct 2026","in 4 days"],
+    ["soon","File written statement","SITA SAHU VS RAMESH CHANDRA AGRAWAL &mdash; Civil Court","31 Oct 2026","in 7 days"],
+    ["","Implement High Court order (compliance)","UMRENDRA PRATAP SINGH VS VC LDA &mdash; High Court","02 Nov 2026","in 9 days"]
+  ];
+  document.getElementById('actList').innerHTML=acts.map(function(a){
+    return '<div class="act '+a[0]+'"><div class="stripe"></div><div><div class="t">'+a[1]+'</div><div class="m">'+a[2]+'</div></div>'+
+      '<div style="display:flex;align-items:center;gap:14px"><div class="due"><b>'+a[3]+'</b>'+a[4]+'</div><button class="btn" onclick="openCase()">Open</button></div></div>';
+  }).join('');
+
+  var cases=[
+    ["HC/10202/2008","RISHITA DEVELOPER PVT. LTD. VS. L.D.A.","High Court","Misc. Bench","Property","R.K. Verma","reply","Reply pending","28 Oct 2026"],
+    ["28A/2019","TAJ AHMAD VS LDA","Civil Court","Land Acquisition","Arjan","S.P. Singh","reply","Reply pending","30 Oct 2026"],
+    ["RS/1990","SITA SAHU VS RAMESH CHANDRA AGRAWAL & OTH","Civil Court","Others","RBO","A. Kamboj","reply","Reply pending","31 Oct 2026"],
+    ["HC/10231/2011","PICCADILY HOLIDAY RESORTS LTD. VS. STATE OF U.P.","High Court","Misc. Bench","Commercial","M. Yadav","filed","Statement filed","05 Nov 2026"],
+    ["HC/10255/2009","UMRENDRA PRATAP SINGH VS. VC LDA","High Court","Misc. Bench","Establishment","R.K. Verma","comply","Compliance","02 Nov 2026"],
+    ["HC/10167/2008","ASHRARUL HAQ VS. STATE OF U.P. & OTHERS","High Court","Misc. Bench","Engineering","A. Kamboj","hearing","In hearing","27 Oct 2026"],
+    ["SLP/4821/2020","LDA VS. RAJENDRA PRASAD","Supreme Court","Special Leave","Property","M. Yadav","hearing","In hearing","10 Nov 2026"],
+    ["103/2012","SHAKUNTALA DEVI VS. LDA","Civil Court","Others","RBO","S.P. Singh","decided","Decided","&mdash;"]
+  ];
+  var curF='all';
+  function renderCases(f){
+    curF=f;
+    document.getElementById('caseRows').innerHTML=cases.filter(function(c){return !f||f==='all'||c[6]===f}).map(function(c){
+      return '<tr class="clk" onclick="openCase('+JSON.stringify(c).replace(/"/g,'&quot;')+')"><td class="tnum">'+c[0]+'</td><td>'+c[1]+'</td><td>'+c[2]+'</td><td>'+c[3]+'</td><td>'+c[4]+'</td><td>'+c[5]+'</td><td><span class="chip '+c[6]+'">'+c[7]+'</span></td><td class="tnum">'+c[8]+'</td></tr>';
+    }).join('');
+  }
+  renderCases('all');
+  document.querySelectorAll('#cases .fchip').forEach(function(ch){ch.onclick=function(){
+    document.querySelectorAll('#cases .fchip').forEach(function(x){x.classList.remove('on')});ch.classList.add('on');renderCases(ch.dataset.f);
+  }});
+
+  function openCase(c){
+    if(c){document.getElementById('dTitle').textContent=c[1];document.getElementById('dNo').textContent=c[0];
+      document.getElementById('dCourt').textContent=c[2];document.getElementById('dType').textContent=c[3];
+      document.getElementById('dSect').textContent=c[4];document.getElementById('dOff').textContent=c[5];}
+    show('detail');
+  }
+
+  function openForm(){document.getElementById('formOv').classList.add('on')}
+  function closeForm(){document.getElementById('formOv').classList.remove('on')}
+  function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on')},2600);}
+  function saveCase(){
+    var title=document.getElementById('f_title').value.trim()||"New case";
+    var no=document.getElementById('f_no').value.trim()||"NEW/"+(1000+Math.floor(Math.random()*9000))+"/2026";
+    var sp=document.getElementById('f_stage').value.split('|');
+    var nd=document.getElementById('f_next').value; if(nd){var d=new Date(nd);nd=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});} else {nd="&mdash;";}
+    cases.unshift([no,title,document.getElementById('f_court').value,document.getElementById('f_type').value,document.getElementById('f_sect').value,document.getElementById('f_off').value.trim()||"Unassigned",sp[0],sp[1],nd]);
+    document.querySelectorAll('#cases .fchip').forEach(function(x){x.classList.toggle('on',x.dataset.f==='all')});
+    renderCases('all');
+    document.getElementById('f_title').value='';document.getElementById('f_no').value='';document.getElementById('f_off').value='';document.getElementById('f_next').value='';
+    closeForm();show('cases');toast('Case registered successfully');
+  }
+  document.getElementById('formOv').addEventListener('click',function(e){if(e.target===this)closeForm()});
+
+  var hdays=[
+    ["Sun 26 Oct 2026","Tomorrow",[["High Court (Criminal) &mdash; Case 457","Personal appearance required &middot; urgent"]]],
+    ["Mon 27 Oct 2026","",[["High Court &mdash; ASHRARUL HAQ VS STATE OF U.P.","Arguments &middot; Adv. S.V. Asthana"]]],
+    ["Wed 28 Oct 2026","",[["High Court &mdash; RISHITA DEVELOPER VS LDA","Counter-affidavit due &middot; Property section"]]],
+    ["Fri 30 Oct 2026","",[["Civil Court &mdash; TAJ AHMAD VS LDA","Written statement &middot; Arjan section"]]]
+  ];
+  document.getElementById('hearList').innerHTML=hdays.map(function(d){
+    return '<div class="daygrp"><div class="dayhd"><span class="dd">'+d[0]+'</span>'+(d[1]?'<span style="color:var(--ink-soft);font-weight:600;font-size:12px">'+d[1]+'</span>':'')+'</div>'+
+      d[2].map(function(h){return '<div class="hcard" onclick="openCase()"><div style="flex:1"><div class="ht">'+h[0]+'</div><div class="hm">'+h[1]+'</div></div><span style="color:var(--ink-faint)">&#8250;</span></div>';}).join('')+'</div>';
+  }).join('');
+
+  var files=[
+    ["RISHITA DEVELOPER VS LDA","R.K. Verma","Property","Drafting counter","42 days"],
+    ["TAJ AHMAD VS LDA","S.P. Singh","Arjan","Para-wise comments","18 days"],
+    ["SITA SAHU VS R.C. AGRAWAL","A. Kamboj","RBO","Statement prep","9 days"],
+    ["UMRENDRA PRATAP SINGH VS VC LDA","R.K. Verma","Establishment","Compliance action","6 days"],
+    ["ASHRARUL HAQ VS STATE OF U.P.","A. Kamboj","Engineering","Awaiting hearing","3 days"]
+  ];
+  document.getElementById('fileRows').innerHTML=files.map(function(f){
+    return '<tr class="clk" onclick="openCase()"><td>'+f[0]+'</td><td>'+f[1]+'</td><td>'+f[2]+'</td><td>'+f[3]+'</td><td class="n">'+f[4]+'</td></tr>';
+  }).join('');
+
+  var pwc=[
+    ["RISHITA DEVELOPER VS LDA","High Court","28 Oct 2026","11","Property","reply","To prepare"],
+    ["TAJ AHMAD VS LDA","High Court","19 Oct 2026","8","Arjan","over","Overdue"],
+    ["SITA SAHU VS R.C. AGRAWAL","Civil Court","31 Oct 2026","6","RBO","reply","To prepare"],
+    ["ASHRARUL HAQ VS STATE OF U.P.","High Court","&mdash;","14","Engineering","filed","Under review"],
+    ["PICCADILY HOLIDAY RESORTS VS UP","High Court","&mdash;","9","Commercial","filed","Under review"],
+    ["M/S ORANGE DEVCON VS LDA","High Court","&mdash;","12","Property","decided","Finalised"],
+    ["AWDHESH PANDEY VS LDA","Civil Court","&mdash;","5","RBO","decided","Finalised"]
+  ];
+  document.getElementById('pwcRows').innerHTML=pwc.map(function(p){
+    return '<tr class="clk" onclick="openCase()"><td>'+p[0]+'</td><td>'+p[1]+'</td><td class="tnum">'+p[2]+'</td><td class="n">'+p[3]+'</td><td>'+p[4]+'</td><td><span class="chip '+(p[5]==='over'?'over':p[5])+'">'+p[6]+'</span></td></tr>';
+  }).join('');
+
+  var comp=[
+    ["Implement allotment as per HC order","UMRENDRA PRATAP SINGH VS VC LDA","Establishment","02 Nov 2026","comply","Pending"],
+    ["Refund with interest per order","NATHA PRASAD VS LDA","RBO","28 Oct 2026","over","Overdue"],
+    ["Regularise plot per direction","AWDHESH PANDEY VS LDA","Property","08 Nov 2026","comply","Pending"]
+  ];
+  document.getElementById('compRows').innerHTML=comp.map(function(c){
+    return '<tr><td>'+c[0]+'</td><td>'+c[1]+'</td><td>'+c[2]+'</td><td class="tnum">'+c[3]+'</td><td><span class="chip '+(c[4]==='over'?'over':'comply')+'">'+c[5]+'</span></td></tr>';
+  }).join('');
+
+  var adv=[
+    ["Siddharth Vikram Asthana","412","63","201","&#8377; 18.4 L"],
+    ["Vijay Pratap Singh Chauhan","386","71","188","&#8377; 16.1 L"],
+    ["R. N. Trivedi","144","12","97","&#8377; 7.2 L"],
+    ["Anjali Srivastava","96","9","61","&#8377; 4.8 L"]
+  ];
+  document.getElementById('advRows').innerHTML=adv.map(function(a){
+    return '<tr><td>'+a[0]+'</td><td class="n">'+a[1]+'</td><td class="n">'+a[2]+'</td><td class="n">'+a[3]+'</td><td class="n">'+a[4]+'</td></tr>';
+  }).join('');
+
+  var rpts=[
+    ["Department-Wise Case Count","Pending & status by section and court."],
+    ["Pending by Section / Officer","Flat accountability list, sortable."],
+    ["Cause List","Hearings for a date, court-wise."],
+    ["Hearing Outcome","Won / lost / adjourned trends."],
+    ["Advocate-Wise Report","Caseload per advocate."],
+    ["Advocate Payment Report","Fees paid, period-wise."],
+    ["Notice / Petition Register","Incoming notices and petitions."],
+    ["Compliance Register","Orders to comply and due dates."],
+    ["Dashboard Card Data","Underlying case lists for each KPI."]
+  ];
+  document.getElementById('rptGrid').innerHTML=rpts.map(function(r){
+    return '<div class="rpt"><h4>'+r[0]+'</h4><p>'+r[1]+'</p><div class="rb"><button class="btn ghost">Open</button><button class="btn">Export</button></div></div>';
+  }).join('');
+
+  document.querySelectorAll('.dtab').forEach(function(t){t.onclick=function(){
+    document.querySelectorAll('.dtab').forEach(function(x){x.classList.remove('on')});t.classList.add('on');
+    document.querySelectorAll('.dpane').forEach(function(p){p.classList.toggle('on',p.id==='p-'+t.dataset.p)});
+  }});
+</script>
